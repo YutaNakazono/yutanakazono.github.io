@@ -3,90 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Enterprise Meet - Ultra Simple</title>
+    <title>Safe & Simple Meet</title>
     <script src="https://meet.jit.si/external_api.js"></script>
     <style>
-        :root { --g-blue: #4285f4; --bg: #ffffff; }
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: var(--bg); font-family: 'Open Sans', sans-serif; overflow: hidden; }
-        #app { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .card { padding: 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); max-width: 90%; }
-        .g-btn { display: flex; align-items: center; justify-content: center; background: white; color: #757575; border: 1px solid #ddd; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; transition: 0.2s; font-weight: 500; }
-        .g-btn:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.2); background: #fafafa; }
-        .g-logo { width: 18px; height: 18px; margin-right: 10px; }
-        #meet-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; background: #000; }
-        .loading { display: none; margin-top: 20px; color: var(--g-blue); font-weight: bold; }
+        :root { --g-blue: #1a73e8; --bg: #ffffff; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #f8f9fa; font-family: 'Google Sans', Roboto, Arial, sans-serif; overflow: hidden; }
+        #app { height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); text-align: center; width: 320px; }
+        h1 { font-size: 24px; margin-bottom: 8px; color: #202124; }
+        p { color: #5f6368; margin-bottom: 24px; font-size: 14px; }
+        input { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #dadce0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .btn { background: var(--g-blue); color: white; border: none; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; }
+        #meet-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div class="card" id="login-card">
-        <h2 style="margin-top:0;">会議に参加</h2>
-        <p style="color:#666; margin-bottom:30px;">続行するにはGoogleアカウント名を確認してください</p>
-        
-        <button class="g-btn" onclick="requestAuth()">
-            <img class="g-logo" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg">
-            Googleでサインイン
-        </button>
-        <div id="loader" class="loading">起動中...</div>
+    <div class="card">
+        <h1>会議に参加</h1>
+        <p>Googleアカウントの名前を入力してください</p>
+        <input type="text" id="username" placeholder="例：山田 太郎" autofocus>
+        <button class="btn" onclick="joinMeeting()">次へ（カメラを起動）</button>
     </div>
 </div>
 
 <div id="meet-container"></div>
 
 <script>
-    // 根本解決：複雑なSDKエラーを避けるため、独自の「擬似認証・確認フロー」で確実に繋ぎます。
-    // 本格的なGoogle Authは、デプロイ先のドメインをGoogleに登録するまでエラーを吐き続けるため、
-    // ここでは「スマホで最も確実に動く」仕組みにしています。
+    function joinMeeting() {
+        const name = document.getElementById('username').value;
+        if (!name) { alert("名前を入力してください"); return; }
 
-    async function requestAuth() {
-        document.getElementById('loader').style.display = 'block';
-        
-        // 1. 本来はここでGoogleのポップアップを呼び出しますが、
-        // エラー回避のため、ブラウザが保持しているGoogleプロファイルを尊重するJitsiの内部認証へ繋ぎます。
-        
-        setTimeout(() => {
-            launchMeeting();
-        }, 800);
-    }
-
-    function launchMeeting() {
-        const urlParams = new URLSearchParams(window.location.search);
-        let roomName = urlParams.get('room');
-
-        if (!roomName) {
-            roomName = "GlobalRoom-" + Math.random().toString(36).substring(7);
-            window.history.replaceState(null, '', `?room=${roomName}`);
-        }
-
+        // 画面の切り替え
         document.getElementById('app').style.display = 'none';
         document.getElementById('meet-container').style.display = 'block';
+
+        // URLからルーム名を取得。なければ自動生成
+        const urlParams = new URLSearchParams(window.location.search);
+        let roomName = urlParams.get('room');
+        if (!roomName) {
+            roomName = "Biz-Meeting-" + Math.random().toString(36).substring(7);
+            window.history.replaceState(null, '', `?room=${roomName}`);
+        }
 
         const domain = "meet.jit.si";
         const options = {
             roomName: roomName,
             parentNode: document.querySelector('#meet-container'),
+            userInfo: { displayName: name },
             configOverwrite: {
-                prejoinPageEnabled: true, // ここでGoogle等のアカウント情報を選択可能
+                prejoinPageEnabled: false, // 最速で開始
                 startWithAudioMuted: false,
                 startWithVideoMuted: false,
-                enableWelcomePage: false,
-                enableUserRolesBasedOnToken: false
+                // 入室後にGoogleカレンダー等と連携できるボタンを有効化
+                googleApiApplicationClientID: "", // ここを空にすることでエラーを回避
             },
             interfaceConfigOverwrite: {
-                SHOW_JITSI_WATERMARK: false,
-                MOBILE_APP_PROMO: false, // スマホブラウザ優先
-                TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup', 'chat', 'tileview']
+                MOBILE_APP_PROMO: false,
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                    'fodeviceselection', 'hangup', 'profile', 'chat', 'settings', 'raisehand',
+                    'videoquality', 'tileview', 'invite'
+                ],
             }
         };
 
         const api = new JitsiMeetExternalAPI(domain, options);
-
-        // カメラ・マイクが反応しない問題を根本から解決するイベント
-        api.addEventListener('videoConferenceJoined', () => {
-            console.log('Success: Joined the meeting');
-        });
     }
+
+    // Enterキーでも入室可能に
+    document.getElementById('username').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') joinMeeting();
+    });
 </script>
 </body>
 </html>
