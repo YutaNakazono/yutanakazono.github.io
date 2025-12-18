@@ -1,59 +1,50 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>プライベート会議室</title>
+    <title>マイ・オンライン会議室</title>
     <script src="https://meet.jit.si/external_api.js"></script>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background-color: #111; color: white; font-family: sans-serif; }
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #f0f0f0; }
         #meet { width: 100vw; height: 100vh; }
-        #auth-error { display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
     </style>
 </head>
 <body>
     <div id="meet"></div>
-    <div id="auth-error" style="display:none;">
-        <h1>パスワードが違います。<br>ページを再読み込みしてください。</h1>
-    </div>
 
     <script>
-        const CORRECT_PASSWORD = "kugitobyoubu2025"; // 指定のパスワード
-
-        function startMeeting() {
-            const password = prompt("パスワードを入力してください:");
-
-            if (password === CORRECT_PASSWORD) {
-                // パスワードが正しい場合のみ実行
-                const urlParams = new URLSearchParams(window.location.search);
-                let roomName = urlParams.get('room');
-                
-                if (!roomName) {
-                    // ルーム名がない場合は固定のハッシュ値などを生成（推測されにくくするため）
-                    roomName = "Private-Room-" + Math.random().toString(36).substring(7);
-                    window.location.search = '?room=' + roomName;
-                    return;
-                }
-
-                const domain = "meet.jit.si";
-                const options = {
-                    roomName: roomName,
-                    parentNode: document.querySelector('#meet'),
-                    lang: 'ja',
-                    configOverwrite: {
-                        startWithAudioMuted: false,
-                        startWithVideoMuted: false
-                    }
-                };
-                new JitsiMeetExternalAPI(domain, options);
-            } else {
-                // パスワードが違う場合
-                document.getElementById('auth-error').style.display = 'flex';
-                alert("パスワードが正しくありません。");
-            }
+        // URLのパラメータからルーム名を取得。なければランダム生成
+        const urlParams = new URLSearchParams(window.location.search);
+        let roomName = urlParams.get('room');
+        
+        if (!roomName) {
+            // ルーム名がない場合はランダムな文字列を生成してリダイレクト
+            roomName = "Room-" + Math.random().toString(36).substring(7);
+            window.location.search = '?room=' + roomName;
         }
 
-        // 実行
-        startMeeting();
+        const domain = "meet.jit.si";
+        const options = {
+            roomName: roomName,
+            parentNode: document.querySelector('#meet'),
+            lang: 'ja', // 日本語設定
+            configOverwrite: {
+                startWithAudioMuted: false,
+                startWithVideoMuted: false
+            },
+            interfaceConfigOverwrite: {
+                // 不要なボタンを隠すなどのカスタマイズが可能
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                    'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+                    'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+                    'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+                    'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
+                    'security'
+                ],
+            }
+        };
+        const api = new JitsiMeetExternalAPI(domain, options);
     </script>
 </body>
 </html>
